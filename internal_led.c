@@ -6,6 +6,9 @@
 #include <zephyr/devicetree.h>
 #include <drivers/gpio.h>
 
+#include<zephyr/logging/log.h>
+LOG_MODULE_REGISTER(internal_led, CONFIG_APP_LOG_LEVEL);
+
 struct k_thread led_thread;
 
 static const struct gpio_dt_spec int_led = GPIO_DT_SPEC_GET(DT_NODELABEL(int_led), gpios);
@@ -42,6 +45,11 @@ static void io_led_thread(void *p1, void *p2, void *p3)
 static int io_led_init(const struct device *dev)
 {
     ARG_UNUSED(dev);
+
+    if(!device_is_ready(int_led.port)) {
+		LOG_ERR("GPIO device [%s] is not ready", int_led.port->name);
+		return -ENODEV;
+	}
 
     // Internal LED
     gpio_pin_configure_dt(&int_led, GPIO_OUTPUT);
