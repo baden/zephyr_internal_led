@@ -1,3 +1,4 @@
 config INTERNAL_LED_DRIVER
     bool "Intrernal LED for most Baden's devices."
     default n
+    depends on GPIO
