@@ -19,6 +19,31 @@ static K_KERNEL_STACK_DEFINE(io_led_stack, LED_STACK_SIZE);
 // TODO: Use kernel mechanic
 volatile t_indicator indicator = INDICATOR_OFF;
 
+static inline __attribute__((always_inline)) void error3(int counter) {
+    switch((counter & 0x0F)) {
+        case 0:
+        case 2:
+        case 4:
+            gpio_pin_set_dt(&int_led, 1);
+            break;
+        default:
+            gpio_pin_set_dt(&int_led, 0);
+    }
+}
+
+static inline __attribute__((always_inline)) void error4(int counter) {
+    switch((counter & 0x0F)) {
+        case 0:
+        case 2:
+        case 4:
+        case 6:
+            gpio_pin_set_dt(&int_led, 1);
+            break;
+        default:
+            gpio_pin_set_dt(&int_led, 0);
+    }
+}
+
 static void io_led_thread(void *p1, void *p2, void *p3)
 {
     uint32_t counter = 0;
@@ -36,6 +61,12 @@ static void io_led_thread(void *p1, void *p2, void *p3)
                 break;
             case INDICATOR_IDLE:
                 gpio_pin_set_dt(&int_led, (counter & 0x0F) == 0);
+                break;
+            case INDICATOR_ERROR_3:
+                error3(counter & 0x0F);
+                break;
+            case INDICATOR_ERROR_4:
+                error4(counter & 0x0F);
                 break;
         }
         k_sleep(K_MSEC(64));
@@ -70,4 +101,8 @@ SYS_INIT(io_led_init, APPLICATION, CONFIG_KERNEL_INIT_PRIORITY_DEVICE);
 void io_led_set_indicator(t_indicator _indicator)
 {
     indicator = _indicator;
+}
+
+t_indicator io_led_get_indicator() {
+    return indicator;
 }
