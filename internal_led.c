@@ -4,9 +4,9 @@
 #include <zephyr/init.h>
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
-#include <drivers/gpio.h>
+#include <zephyr/drivers/gpio.h>
 
-#include<zephyr/logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(internal_led, CONFIG_APP_LOG_LEVEL);
 
 struct k_thread led_thread;
