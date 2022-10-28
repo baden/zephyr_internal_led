@@ -13,9 +13,6 @@ struct k_thread led_thread;
 
 static const struct gpio_dt_spec int_led = GPIO_DT_SPEC_GET(DT_NODELABEL(int_led), gpios);
 
-#define LED_STACK_SIZE 512
-static K_KERNEL_STACK_DEFINE(io_led_stack, LED_STACK_SIZE);
-
 // TODO: Use kernel mechanic
 volatile t_indicator indicator = INDICATOR_OFF;
 
@@ -44,34 +41,35 @@ static inline __attribute__((always_inline)) void error4(int counter) {
     }
 }
 
-static void io_led_thread(void *p1, void *p2, void *p3)
+// static void io_led_thread(void *p1, void *p2, void *p3)
+static void io_led_to(struct k_timer *dummy)
 {
-    uint32_t counter = 0;
-    for(;;) {
-        counter++;
-        switch(indicator) {
-            case INDICATOR_OFF:
-                gpio_pin_set_dt(&int_led, 0);
-                break;
-            case INDICATOR_POWERING_ON:
-                gpio_pin_set_dt(&int_led, 1);
-                break;
-            case INDICATOR_POWERING_OFF:
-                gpio_pin_set_dt(&int_led, (counter & 0x08) == 0);
-                break;
-            case INDICATOR_IDLE:
-                gpio_pin_set_dt(&int_led, (counter & 0x0F) == 0);
-                break;
-            case INDICATOR_ERROR_3:
-                error3(counter & 0x0F);
-                break;
-            case INDICATOR_ERROR_4:
-                error4(counter & 0x0F);
-                break;
-        }
-        k_sleep(K_MSEC(64));
+    ARG_UNUSED(dummy);
+    static uint8_t counter = 0;
+    switch(indicator) {
+        case INDICATOR_OFF:
+            gpio_pin_set_dt(&int_led, 0);
+            break;
+        case INDICATOR_POWERING_ON:
+            gpio_pin_set_dt(&int_led, 1);
+            break;
+        case INDICATOR_POWERING_OFF:
+            gpio_pin_set_dt(&int_led, (counter & 0x08) == 0);
+            break;
+        case INDICATOR_IDLE:
+            gpio_pin_set_dt(&int_led, (counter & 0x0F) == 0);
+            break;
+        case INDICATOR_ERROR_3:
+            error3(counter & 0x0F);
+            break;
+        case INDICATOR_ERROR_4:
+            error4(counter & 0x0F);
+            break;
     }
+    counter++;
 }
+
+K_TIMER_DEFINE(io_led_timer, io_led_to, io_led_to/*no realy need cancel*/);
 
 static int io_led_init(const struct device *dev)
 {
@@ -86,11 +84,13 @@ static int io_led_init(const struct device *dev)
     gpio_pin_configure_dt(&int_led, GPIO_OUTPUT);
     gpio_pin_set_dt(&int_led, 0);
 
-    k_thread_create(&led_thread,
-        io_led_stack, LED_STACK_SIZE,
-        io_led_thread, NULL, NULL, NULL,
-        -1, K_USER, K_NO_WAIT);
-    k_thread_name_set(&led_thread, "IO/LED");
+    k_timer_start(&io_led_timer, K_MSEC(64), K_MSEC(64));
+
+    // k_thread_create(&led_thread,
+    //     io_led_stack, LED_STACK_SIZE,
+    //     io_led_thread, NULL, NULL, NULL,
+    //     -1, K_USER, K_NO_WAIT);
+    // k_thread_name_set(&led_thread, "IO/LED");
 
     return 0;
 }
